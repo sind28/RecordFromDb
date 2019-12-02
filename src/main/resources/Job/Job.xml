@@ -1,0 +1,59 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:batch="http://www.springframework.org/schema/batch" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/batch
+		http://www.springframework.org/schema/batch/spring-batch-2.2.xsd
+		http://www.springframework.org/schema/beans 
+		http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+	">
+	<import resource="../BatchConfig/Context.xml" />
+	<import resource="../BatchConfig/Database.xml" />
+	<bean id="report" class="com.example.model.Employee" scope="prototype" />
+	<bean id="itemProcessor" class="com.example.tasklet.CustomItemProcessor" />
+	
+	<batch:job id="Job">
+	  <batch:step id="step1">
+		<batch:tasklet>
+			<batch:chunk reader="ItemReader" writer="multiFileWriter" 
+                              processor="itemProcessor" commit-interval="1">
+			</batch:chunk>
+		</batch:tasklet>
+	  </batch:step>
+	</batch:job>
+	
+	<bean id="ItemReader" class="org.springframework.batch.item.database.JdbcCursorItemReader">
+<property name="dataSource" ref="dataSource" />
+ 
+         <property name="sql" 
+            value="select employee_id,employee_name,employee_relatives,transaction_id from employee_table" />
+           <property name = "rowMapper">
+				<bean class="com.example.tasklet.DbrowSetMapper" />
+	 </property>
+           </bean>	
+           
+           <bean id="FileItemWriter" class="org.springframework.batch.item.file.FlatFileItemWriter">
+        <!-- property name="resource" value="file:outputs/report.csv" /-->
+        
+        <!-- property name="appendAllowed" value="true" /-->
+        <property name="lineAggregator">
+            <bean
+                class="org.springframework.batch.item.file.transform.DelimitedLineAggregator">
+                <property name="delimiter" value="," />
+                <property name="fieldExtractor">
+                    <bean
+                        class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor">
+                        <property name="names" value="employee_id, employee_name, employee_relatives, transaction_id" />
+                    </bean>
+                </property>
+            </bean>
+        </property>
+    </bean>
+ <bean id="multiFileWriter" class="org.springframework.batch.item.file.MultiResourceItemWriter">
+      <property name="resource" value="file:outputs/DemoData.txt"/>
+      <property name="itemCountLimitPerResource" value="4"/>
+      <property name="delegate" ref="FileItemWriter"/>
+  </bean>    
+         </beans>  
+           
+           
+           
